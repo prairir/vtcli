@@ -5,21 +5,27 @@ import os
 import time
 import sys
 
-conf = ConfigFactory.parse_file("./secrets.conf")
 
-headers = {
-    "x-apikey": conf.get("api_key")
-}
-
+# shut down and show error message
+# takes a string error message
+# returns None
 def shutdown(message):
     print("script is turning off now\nbye :)")
     sys.exit("Error: {}".format(message))
 
+# just a pretty print wrapper
+# takes any object
+# returns None
 def printer(dataDict):
     pp = pprint.PrettyPrinter().pprint(dataDict)
 
+# reads the response
+# takes a list or response object
+# changes response object to list
+# returns array of response objects dictonaries
 def readResponse(uploadResponse):
     params = []
+    # changes type to list if its not a list
     if(type(uploadResponse) is list):
         params = uploadResponse
     else: 
@@ -28,29 +34,38 @@ def readResponse(uploadResponse):
     print(params)
     responses = []
     for i in params:
-        if i["error"]:
-            print("error")
-            continue
         response = requests.get("https://www.virustotal.com/api/v3/analyses/{}".format(i["data"]["id"]), headers=headers)
         responses.append(response.json())
 
     return responses
 
+# sends a url to VT endpoint
+# takes string
+# returns response object
 def sendUrl(path):
     url = {'url': (None, path)}
     response = requests.post("https://www.virustotal.com/api/v3/urls", headers=headers, data=url )
-    print(url)
-    print(response.json())
+    # poop pants on error
+    if response.status_code != requests.codes.ok:
+        shutdown("error code: {}\nerror message: {}".format(response.json()["error"]["code"], response.json()["error"]["message"]))
     return response
 
 
+# sends a file to VT endpoint
+# takes file path as string
+# returns response object
 def sendFile(path):
-    print(path)
     uploadFile = open(path)
     files = {'file': uploadFile}
     response = requests.post("https://www.virustotal.com/api/v3/files", headers=headers, files=files ) 
+    # poop pants on error
+    if response.status_code != requests.codes.ok:
+        shutdown("error code: {}\nerror message: {}".format(response.json()["error"]["code"], response.json()["error"]["message"]))
     return response
 
+# given a folder, uploads each file to VT
+# takes a folder path
+# returns a list of response objects
 def sendFolder(path):
     responses = []
     for (dirPath, dirList, fileList) in os.walk(path):
@@ -58,7 +73,7 @@ def sendFolder(path):
             shutdown("Directory is empty")
         printer(fileList)
         for single in fileList:
-            responses.append(sendFile(single).json())
+            responses.append(sendFile(os.path.join(dirPath, single)).json())
             time.sleep(conf["folder_delay"])
         break
     return responses
@@ -68,5 +83,11 @@ def main():
 
 
     
-main() 
+if __name__ == "__main__":
+    conf = ConfigFactory.parse_file("./secrets.conf")
+
+    headers = {
+        "x-apikey": conf.get("api_key")
+    }
+    main() 
 
