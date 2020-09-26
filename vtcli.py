@@ -5,6 +5,11 @@ import os
 import time
 import sys
 
+conf = ConfigFactory.parse_file("./secrets.conf")
+
+headers = {
+    "x-apikey": conf.get("api_key")
+}
 
 def shutdown(message):
     print("script is turning off now\nbye :)")
@@ -14,12 +19,30 @@ def printer(dataDict):
     pp = pprint.PrettyPrinter().pprint(dataDict)
 
 def readResponse(uploadResponse):
+    params = []
+    if(type(uploadResponse) is list):
+        params = uploadResponse
+    else: 
+        params.append(uploadResponse.json())
+    print(type(params))
+    print(params)
     responses = []
-    for i in uploadResponse:
+    for i in params:
+        if i["error"]:
+            print("error")
+            continue
         response = requests.get("https://www.virustotal.com/api/v3/analyses/{}".format(i["data"]["id"]), headers=headers)
         responses.append(response.json())
 
     return responses
+
+def sendUrl(path):
+    url = {'url': (None, path)}
+    response = requests.post("https://www.virustotal.com/api/v3/urls", headers=headers, data=url )
+    print(url)
+    print(response.json())
+    return response
+
 
 def sendFile(path):
     print(path)
@@ -41,13 +64,9 @@ def sendFolder(path):
     return responses
 
 def main():
-    printer(readResponse(sendFolder(".")))
+    printer(readResponse(sendUrl("https://www.google.ca")))
 
-if __name__ == "__main__":
-    conf = ConfigFactory.parse_file("./secrets.conf")
 
-    headers = {
-        "x-apikey": conf.get("api_key")
-    }
-    main() 
+    
+main() 
 
