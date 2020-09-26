@@ -37,8 +37,14 @@ def readResponse(uploadResponse):
     for i in params:
         if "error" in uploadResponse:
             continue
+
         response = requests.get("https://www.virustotal.com/api/v3/analyses/{}".format(i["data"]["id"]), headers=headers)
-        responses.append(response.json())
+        responceObj = response.json()
+        while responceObj.get("status") == "queued":
+            response = requests.get("https://www.virustotal.com/api/v3/analyses/{}".format(i["data"]["id"]), headers=headers)
+            responceObj = response.json()
+        
+        responses.append(responceObj)
 
     return responses
 
