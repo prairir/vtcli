@@ -1,4 +1,5 @@
 from pyhocon import ConfigFactory
+import argparse
 import requests
 import pprint
 import os
@@ -11,7 +12,7 @@ import sys
 # returns None
 def shutdown(message):
     print("script is turning off now\nbye :)")
-    sys.exit("Error: {}".format(message))
+    sys.exit("{}".format(message))
 
 # just a pretty print wrapper
 # takes any object
@@ -34,6 +35,8 @@ def readResponse(uploadResponse):
     print(params)
     responses = []
     for i in params:
+        if "error" in uploadResponse:
+            continue
         response = requests.get("https://www.virustotal.com/api/v3/analyses/{}".format(i["data"]["id"]), headers=headers)
         responses.append(response.json())
 
@@ -84,6 +87,21 @@ def main():
 
     
 if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(prog="vtcli", description="CLI tool for virus scanning with Virus Total")
+
+    argparser.add_argument("value", nargs=1, metavar="File")
+
+    arguements = argparser.parse_args()
+
+
+    if len(sys.argv) <=1:
+        argparser.print_help()
+        shutdown("not enough arguements")
+
+    if not arguements.value:
+        argparser.print_help()
+        shutdown("Need to specify a file or url to test")
+
     conf = ConfigFactory.parse_file("./secrets.conf")
 
     headers = {
