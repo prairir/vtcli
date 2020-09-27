@@ -36,7 +36,7 @@ def printer(dataDict):
         res = out[1].get("data").get("attributes").get("stats")
         items = out[1].get("data").get("attributes").get("stats").items()
         for x in items:
-            print("\t" + x[0] + " " +str(x[1]))
+            print("\t{} {}".format(x[0], str(x[1])))
         
 
 # reads the response
@@ -58,8 +58,11 @@ def readResponse(uploadResponse):
         response = requests.get("https://www.virustotal.com/api/v3/analyses/{}".format(i["data"]["id"]), headers=headers)
         responceObj = response.json()
         while responceObj.get("status") == "queued":
+            if(arguements.verbose):
+                print("waiting for response for {}".format(name))
             response = requests.get("https://www.virustotal.com/api/v3/analyses/{}".format(i["data"]["id"]), headers=headers)
             responceObj = response.json()
+            time.sleep(0.4)
         
         responses.append([name,responceObj])
 
@@ -71,6 +74,8 @@ def readResponse(uploadResponse):
 def sendUrl(path):
     url = {'url': (None, path)}
     response = requests.post("https://www.virustotal.com/api/v3/urls", headers=headers, data=url )
+    if(arguements.verbose):
+        print("uploading url {}".format(path))
     # poop pants on error
     if response.status_code != requests.codes.ok:
         shutdown("error code: {}\nerror message: {}".format(response.json()["error"]["code"], response.json()["error"]["message"]))
@@ -84,8 +89,10 @@ def sendFile(path):
     uploadFile = open(path)
     files = {'file': uploadFile}
     response = requests.post("https://www.virustotal.com/api/v3/files", headers=headers, files=files ) 
+    if(arguements.verbose):
+        print("uploading {}".format(path))
     # poop pants on error
-    if response.status_code != requests.codes.ok:
+    if (response.status_code != requests.codes.ok) and (not arguements.keepGoing or not arguements.directoryKeepGoing):
         shutdown("error code: {}\nerror message: {}".format(response.json()["error"]["code"], response.json()["error"]["message"]))
     return [path, response.json()]
 
@@ -98,15 +105,25 @@ def sendFolder(path):
         if len(fileList) <= 0:
             shutdown("Directory is empty")
         for single in fileList:
-            responses.append(sendFile(os.path.join(dirPath, single)))
+            singleResponse = sendFile(os.path.join(dirPath,single))
+            if "error" in singleResponse[1]:
+                continue
+            responses.append(singleResponse)
             time.sleep(conf["folder_delay"])
         break
     return responses
 
 def main():
-    print(arguements.value)
-    print(arguements.url)
-    printer(readResponse(sendUrl("https://www.google.ca")))
+    if(arguements.file):
+        printer(readResponse(sendFile(arguements.value[0])))
+        return
+    if(arguements.directory or arguements.directoryKeepGoing):
+        printer(readResponse(sendFolder(arguements.value[0])))
+        return
+    if(arguements.url):
+        printer(readResponse(sendUrl(arguements.value[0])))
+        return
+    printer(readResponse(sendFile(arguements.value[0])))
 
     
 if __name__ == "__main__":
@@ -118,9 +135,9 @@ if __name__ == "__main__":
 
     argparser.add_argument("-d", "--directory", action="store_true", help="Scan directory")
 
-    argparser.add_argument("-dc", "--directory-continue", action="store_true", help="Scan directory continue on error")
+    argparser.add_argument("-dk", "--directoryKeepGoing", action="store_true", help="Scan directory continue on error")
 
-    argparser.add_argument("-c", "--continue", action="store_true", help="Continue on error, only useful with -d")
+    argparser.add_argument("-k", "--keepGoing", action="store_true", help="Continue on error, only useful with -d")
 
     argparser.add_argument("-f", "--file", action="store_true", help="Scan file, same as no flags")
 
