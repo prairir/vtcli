@@ -18,7 +18,22 @@ def shutdown(message):
 # takes any object
 # returns None
 def printer(dataDict):
-    pp = pprint.PrettyPrinter().pprint(dataDict)
+    for out in dataDict:
+        print(out[0])
+        res = out[1].get("data").get("attributes").get("stats")
+        items = out[1].get("data").get("attributes").get("stats").items()
+        for x in items:
+            print("\t" + x[0] + " " +str(x[1]))
+        
+
+        #print(out[0])
+        #res = out[1].get("data").get("attributes").get("results")
+        #for x in res:
+         #   cat = res[x].get("category")
+          #  met = res[x].get("method")
+           # print("\n\n\tName: {} \n\tCategory: {}\n\tMethod: {}".format(x, cat, met))
+
+    #pp = pprint.PrettyPrinter().pprint(dataDict)
 
 # reads the response
 # takes a list or response object
@@ -31,8 +46,6 @@ def readResponse(uploadResponse):
         params = uploadResponse
     else: 
         params.append(uploadResponse)
-    print(type(params))
-    print(params)
     responses = []
     for name, i in params:
         if "error" in i:
@@ -80,7 +93,6 @@ def sendFolder(path):
     for (dirPath, dirList, fileList) in os.walk(path):
         if len(fileList) <= 0:
             shutdown("Directory is empty")
-        printer(fileList)
         for single in fileList:
             responses.append(sendFile(os.path.join(dirPath, single)))
             time.sleep(conf["folder_delay"])
