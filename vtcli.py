@@ -57,7 +57,7 @@ def readResponse(uploadResponse):
 
         response = requests.get("https://www.virustotal.com/api/v3/analyses/{}".format(i["data"]["id"]), headers=headers)
         responceObj = response.json()
-        while responceObj.get("status") == "queued":
+        while responceObj.get("data").get("attributes").get("status") == "queued":
             if(arguements.verbose):
                 print("waiting for response for {}".format(name))
             response = requests.get("https://www.virustotal.com/api/v3/analyses/{}".format(i["data"]["id"]), headers=headers)
