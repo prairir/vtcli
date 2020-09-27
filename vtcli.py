@@ -27,18 +27,18 @@ def printer(dataDict):
 def readResponse(uploadResponse):
     params = []
     # changes type to list if its not a list
-    if(type(uploadResponse) is list):
+    if(type(uploadResponse[0]) is list):
         params = uploadResponse
     else: 
-        params.append(uploadResponse.json())
+        params.append(uploadResponse)
     print(type(params))
     print(params)
     responses = []
-    for i in params:
-        if "error" in uploadResponse:
+    for name, i in params:
+        if "error" in i:
             continue
         response = requests.get("https://www.virustotal.com/api/v3/analyses/{}".format(i["data"]["id"]), headers=headers)
-        responses.append(response.json())
+        responses.append([name, response.json()])
 
     return responses
 
@@ -51,7 +51,7 @@ def sendUrl(path):
     # poop pants on error
     if response.status_code != requests.codes.ok:
         shutdown("error code: {}\nerror message: {}".format(response.json()["error"]["code"], response.json()["error"]["message"]))
-    return response
+    return [path, response.json()]
 
 
 # sends a file to VT endpoint
@@ -64,7 +64,7 @@ def sendFile(path):
     # poop pants on error
     if response.status_code != requests.codes.ok:
         shutdown("error code: {}\nerror message: {}".format(response.json()["error"]["code"], response.json()["error"]["message"]))
-    return response
+    return [path, response.json()]
 
 # given a folder, uploads each file to VT
 # takes a folder path
@@ -76,7 +76,7 @@ def sendFolder(path):
             shutdown("Directory is empty")
         printer(fileList)
         for single in fileList:
-            responses.append(sendFile(os.path.join(dirPath, single)).json())
+            responses.append(sendFile(os.path.join(dirPath, single)))
             time.sleep(conf["folder_delay"])
         break
     return responses
